@@ -226,7 +226,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.9);
             z-index: 1000;
             display: flex;
             align-items: center;
@@ -509,12 +509,38 @@
             display: flex;
         }
 
-        .private-chat-modal h3 {
-            color: var(--purple);
-            font-family: 'Cinzel', serif;
+        .private-chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 15px;
             border-bottom: 2px solid var(--purple);
             padding-bottom: 10px;
+        }
+
+        .private-chat-header h3 {
+            color: var(--purple);
+            font-family: 'Cinzel', serif;
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .close-x {
+            background: var(--accent);
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 18px;
+            transition: all 0.3s;
+        }
+
+        .close-x:hover {
+            background: #8b0000;
+            transform: scale(1.1);
         }
 
         .private-messages {
@@ -562,7 +588,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.7);
             z-index: 1400;
         }
 
@@ -585,12 +611,13 @@
             background: var(--accent);
             color: white;
             border: none;
-            padding: 5px 15px;
+            padding: 8px 15px;
             border-radius: 3px;
             cursor: pointer;
             margin-top: 10px;
             width: 100%;
             font-weight: bold;
+            transition: all 0.3s;
         }
 
         .close-btn:hover {
@@ -708,28 +735,38 @@
     <!-- Modal Scanner QR -->
     <div class="scanner-overlay" id="scanner-overlay">
         <div class="scanner-modal">
-            <h2 style="color: var(--secondary); margin-bottom: 15px;">📷 Scanner QR Code</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2 style="color: var(--secondary); margin: 0;">📷 Scanner QR Code</h2>
+                <button class="close-x" id="close-scanner">✕</button>
+            </div>
             <div id="reader" style="width: 100%;"></div>
-            <button class="close-btn" id="close-scanner">Fermer</button>
         </div>
     </div>
 
     <!-- Modal Chat Privé -->
     <div class="modal-backdrop" id="modal-backdrop"></div>
     <div class="private-chat-modal" id="private-chat-modal">
-        <h3 id="private-chat-title">Chat Privé</h3>
+        <div class="private-chat-header">
+            <h3 id="private-chat-title">Chat Privé</h3>
+            <button class="close-x" id="close-private-chat">✕</button>
+        </div>
         <div class="private-messages" id="private-messages"></div>
         <div class="private-chat-input">
             <input type="text" id="private-input" placeholder="Message...">
             <button id="send-private">Envoyer</button>
         </div>
-        <button class="close-btn" id="close-private-chat">Fermer</button>
     </div>
 
     <script>
         // ============= CONFIG =============
         const BACKEND_URL = 'http://localhost:5000';
-        const socket = io(BACKEND_URL);
+        let socket = null;
+        try {
+            socket = io(BACKEND_URL);
+        } catch (err) {
+            console.warn('Socket.io non disponible - mode local');
+        }
+        
         const RANGS = ["Rang E", "Rang D", "Rang C", "Rang B", "Rang A", "Rang S", "Rang SS", "Rang SSS", "Rang SSS+"];
 
         // ============= STATE =============
@@ -746,18 +783,14 @@
                 currentUser = JSON.parse(savedUser);
                 document.getElementById('pseudo-input').value = currentUser.displayName || currentUser.username;
                 updateUI();
-                socket.emit('join', currentUser.username);
+                if (socket) socket.emit('join', currentUser.username);
             } else {
                 const username = 'User_' + Math.random().toString(36).substring(7);
-                const response = await fetch(`${BACKEND_URL}/api/users/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username })
-                });
-                currentUser = await response.json();
+                currentUser = { username, displayName: username, points: 0, questsCompleted: 0 };
                 localStorage.setItem('g_user', JSON.stringify(currentUser));
-                socket.emit('join', currentUser.username);
+                document.getElementById('pseudo-input').value = currentUser.displayName;
                 updateUI();
+                if (socket) socket.emit('join', currentUser.username);
             }
         }
 
@@ -774,12 +807,7 @@
         document.getElementById('change-pseudo').addEventListener('click', async () => {
             const newName = document.getElementById('pseudo-input').value.trim();
             if (!newName) return;
-            const response = await fetch(`${BACKEND_URL}/api/users/${currentUser.username}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ displayName: newName })
-            });
-            currentUser = await response.json();
+            currentUser.displayName = newName;
             localStorage.setItem('g_user', JSON.stringify(currentUser));
             updateUI();
             showNotif('✅ Pseudo changé!');
@@ -798,17 +826,26 @@
         document.getElementById('chat-send').addEventListener('click', () => {
             const input = document.getElementById('chat-input');
             if (input.value.trim()) {
-                socket.emit('send-message', {
+                const msgData = {
                     sender: currentUser.displayName || currentUser.username,
                     text: input.value,
                     type: 'user',
                     timestamp: new Date()
-                });
+                };
+                if (socket) {
+                    socket.emit('send-message', msgData);
+                } else {
+                    addMessageToChat(msgData);
+                }
                 input.value = '';
             }
         });
 
-        socket.on('receive-message', (msg) => {
+        document.getElementById('chat-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') document.getElementById('chat-send').click();
+        });
+
+        function addMessageToChat(msg) {
             const chatBox = document.getElementById('chat-box');
             const msgEl = document.createElement('div');
             msgEl.className = `message ${msg.type || 'user'}`;
@@ -820,21 +857,25 @@
             `;
             chatBox.appendChild(msgEl);
             chatBox.scrollTop = chatBox.scrollHeight;
-        });
+        }
+
+        if (socket) {
+            socket.on('receive-message', addMessageToChat);
+        }
 
         // ============= AMIS =============
-        document.getElementById('add-friend').addEventListener('click', async () => {
+        document.getElementById('add-friend').addEventListener('click', () => {
             const friendName = document.getElementById('friend-input').value.trim();
             if (!friendName) return;
-            await fetch(`${BACKEND_URL}/api/friends/add`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ from: currentUser.username, to: friendName })
-            });
-            friends.push(friendName);
-            document.getElementById('friend-input').value = '';
-            updateFriendsList();
-            showNotif('✅ Ami ajouté!');
+            if (!friends.includes(friendName)) {
+                friends.push(friendName);
+                localStorage.setItem('g_friends', JSON.stringify(friends));
+                document.getElementById('friend-input').value = '';
+                updateFriendsList();
+                showNotif('✅ Ami ajouté!');
+            } else {
+                showNotif('⚠️ Ami déjà ajouté', 'error');
+            }
         });
 
         function updateFriendsList() {
@@ -851,41 +892,57 @@
             `).join('');
         }
 
+        function loadFriends() {
+            const saved = localStorage.getItem('g_friends');
+            if (saved) {
+                friends = JSON.parse(saved);
+                updateFriendsList();
+            }
+        }
+
         // ============= CHAT PRIVÉ =============
         function openPrivateChat(friendName) {
             privateChatWith = friendName;
             document.getElementById('private-chat-title').textContent = `Chat avec ${friendName}`;
             document.getElementById('private-chat-modal').classList.add('active');
             document.getElementById('modal-backdrop').classList.add('active');
-            loadPrivateMessages();
-        }
-
-        async function loadPrivateMessages() {
-            const response = await fetch(`${BACKEND_URL}/api/messages/private/${currentUser.username}/${privateChatWith}`);
-            const messages = await response.json();
-            const container = document.getElementById('private-messages');
-            container.innerHTML = messages.map(m => `
-                <div class="message ${m.from === currentUser.username ? 'user' : 'maitre'}">
-                    <span class="msg-sender">${m.from}</span>
-                    <div>${m.text}</div>
-                </div>
-            `).join('');
-            container.scrollTop = container.scrollHeight;
+            document.getElementById('private-messages').innerHTML = `<p style="color: var(--secondary); text-align: center;">Aucun message</p>`;
         }
 
         document.getElementById('send-private').addEventListener('click', () => {
             const input = document.getElementById('private-input');
             if (input.value.trim() && privateChatWith) {
-                socket.emit('send-private-message', {
+                const msgData = {
                     from: currentUser.username,
                     to: privateChatWith,
                     text: input.value,
                     timestamp: new Date()
+                };
+                if (socket) {
+                    socket.emit('send-private-message', msgData);
+                }
+                addPrivateMessage({
+                    ...msgData,
+                    from: currentUser.displayName
                 });
                 input.value = '';
-                loadPrivateMessages();
             }
         });
+
+        function addPrivateMessage(msg) {
+            const container = document.getElementById('private-messages');
+            if (container.textContent.includes('Aucun message')) {
+                container.innerHTML = '';
+            }
+            const msgEl = document.createElement('div');
+            msgEl.className = `message ${msg.from === currentUser.username ? 'user' : 'maitre'}`;
+            msgEl.innerHTML = `
+                <span class="msg-sender">${msg.from}</span>
+                <div>${msg.text}</div>
+            `;
+            container.appendChild(msgEl);
+            container.scrollTop = container.scrollHeight;
+        }
 
         document.getElementById('close-private-chat').addEventListener('click', () => {
             document.getElementById('private-chat-modal').classList.remove('active');
@@ -906,19 +963,25 @@
         });
 
         function onQRSuccess(decodedText) {
-            showNotif(`✅ QR scannné: ${decodedText}`);
-            html5QrcodeScanner.clear();
-            document.getElementById('scanner-overlay').classList.remove('active');
+            showNotif(`✅ QR scanné: ${decodedText}`);
+            closeScanner();
         }
 
         function onQRError(error) {
             console.debug('QR Scan error:', error);
         }
 
-        document.getElementById('close-scanner').addEventListener('click', () => {
-            if (html5QrcodeScanner) html5QrcodeScanner.clear();
+        function closeScanner() {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.clear().catch(() => {
+                    html5QrcodeScanner = null;
+                });
+                html5QrcodeScanner = null;
+            }
             document.getElementById('scanner-overlay').classList.remove('active');
-        });
+        }
+
+        document.getElementById('close-scanner').addEventListener('click', closeScanner);
 
         // ============= CAMÉRA =============
         document.getElementById('camera-toggle').addEventListener('click', async () => {
@@ -932,6 +995,7 @@
                     showNotif('✅ Caméra activée!');
                 } catch (err) {
                     showNotif('❌ Erreur caméra: ' + err.message, 'error');
+                    card.style.display = 'none';
                 }
             }
         });
@@ -941,10 +1005,12 @@
                 cameraStream.getTracks().forEach(track => track.stop());
             }
             document.getElementById('camera-card').style.display = 'none';
+            showNotif('✅ Caméra fermée');
         });
 
         // ============= INIT =============
         init();
+        loadFriends();
     </script>
 </body>
 </html>
