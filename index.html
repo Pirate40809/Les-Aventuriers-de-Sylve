@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Les Aventuriers de Sylve - Guilde</title>
+    <!-- Bibliothèque QR Code Scanner -->
+    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --card-bg: #2d2d2d;
+            --accent-color: #d4af37;
+            --text-color: #ffffff;
+            --error-color: #ff6b6b;
+            --success-color: #51cf66;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container { 
+            width: 100%; 
+            max-width: 500px; 
+        }
+        
+        header { 
+            text-align: center; 
+            border-bottom: 2px solid var(--accent-color); 
+            padding-bottom: 10px; 
+            margin-bottom: 20px; 
+        }
+        
+        h1 { 
+            margin: 0; 
+            color: var(--accent-color); 
+            font-size: 24px; 
+        }
+        
+        .profile-card { 
+            background-color: var(--card-bg); 
+            border-radius: 10px; 
+            padding: 15px; 
+            margin-bottom: 15px; 
+            border-left: 5px solid var(--accent-color); 
+        }
+        
+        .profile-line { 
+            display: flex; 
+            justify-content: space-between; 
+            margin-bottom: 8px; 
+            font-size: 16px; 
+        }
+        
+        .label { 
+            font-weight: bold; 
+            color: #aaa; 
+        }
+        
+        .value { 
+            font-weight: bold; 
+        }
+        
+        .rank-value { 
+            color: var(--accent-color); 
+        }
+        
+        .quests-section { 
+            background-color: var(--card-bg); 
+            border-radius: 10px; 
+            padding: 15px; 
+            margin-bottom: 15px; 
+        }
+        
+        h2 { 
+            font-size: 18px; 
+            margin-top: 0; 
+            border-bottom: 1px solid #444; 
+            padding-bottom: 5px; 
+        }
+        
+        /* Zone de la Caméra */
+        .scanner-container {
+            display: none;
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 2px solid var(--accent-color);
+        }
+        
+        .scanner-container.active {
+            display: block;
+        }
+        
+        #reader { 
+            width: 100%; 
+            background: #000; 
+            border-radius: 5px; 
+            overflow: hidden;
+            min-height: 250px;
+        }
+
+        .btn-scan { 
+            width: 100%; 
+            background-color: var(--accent-color); 
+            color: #000; 
+            border: none; 
+            padding: 12px; 
+            font-size: 16px; 
+            font-weight: bold; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin-bottom: 15px;
+            transition: opacity 0.3s;
+        }
+        
+        .btn-scan:hover {
+            opacity: 0.9;
+        }
+        
+        .btn-scan:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .btn-close-scanner { 
+            width: 100%; 
+            background-color: #cc0000; 
+            color: #fff; 
+            border: none; 
+            padding: 8px; 
+            font-size: 14px; 
+            font-weight: bold; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin-top: 10px;
+            transition: opacity 0.3s;
+        }
+        
+        .btn-close-scanner:hover {
+            opacity: 0.9;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #444;
+            border-top: 3px solid var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .notification {
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            display: none;
+            font-weight: bold;
+        }
+        
+        .notification.success {
+            background-color: var(--success-color);
+            color: #000;
+            display: block;
+        }
+        
+        .notification.error {
+            background-color: var(--error-color);
+            color: #fff;
+            display: block;
+        }
+        
+        .chat-section { 
+            background-color: var(--card-bg); 
+            border-radius: 10px; 
+            padding: 15px; 
+            display: flex; 
+            flex-direction: column; 
+            height: 220px; 
+        }
+        
+        .chat-messages { 
+            flex-grow: 1; 
+            overflow-y: auto; 
+            border: 1px solid #444; 
+            padding: 10px; 
+            border-radius: 5px; 
+            margin-bottom: 10px; 
+            background: #222; 
+        }
+        
+        .message { 
+            margin-bottom: 8px; 
+            font-size: 14px; 
+        }
+        
+        .msg-time { 
+            color: #777; 
+            font-size: 11px; 
+            margin-right: 5px; 
+        }
+        
+        .msg-sender { 
+            color: var(--accent-color); 
+            font-weight: bold; 
+        }
+        
+        .msg-system {
+            color: #51cf66;
+        }
+        
+        .chat-input-area { 
+            display: flex; 
+            gap: 5px; 
+        }
+        
+        .chat-input-area input { 
+            flex-grow: 1; 
+            background: #333; 
+            border: 1px solid #555; 
+            color: white; 
+            padding: 8px; 
+            border-radius: 4px;
+        }
+        
+        .chat-input-area button { 
+            background: var(--accent-color); 
+            border: none; 
+            padding: 0 15px; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+        
+        .chat-input-area button:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📜 LES AVENTURIERS DE SYLVE</h1>
+        </header>
+        
+        <div id="notification" class="notification"></div>
+        
+        <div class="profile-card">
+            <div class="profile-line">
+                <span class="label">Nom :</span>
+                <span class="value" id="adv-name">Aventurier</span>
+            </div>
+            <div class="profile-line">
+                <span class="label">Rang de Classe :</span>
+                <span class="value rank-value" id="adv-rank">Rang E</span>
+            </div>
+            <div class="profile-line">
+                <span class="label">Points :</span>
+                <span class="value" id="adv-points">0 / 1000</span>
+            </div>
+        </div>
+        
+        <div class="quests-section">
+            <h2>⚔️ Quêtes</h2>
+            <div class="profile-line">
+                <span class="label">En cours :</span>
+                <span class="value" id="quest-current">Aucune</span>
+            </div>
+            <div class="profile-line">
+                <span class="label">Terminées :</span>
+                <span class="value" id="quests-completed">0</span>
+            </div>
+        </div>
+
+        <!-- Bouton pour activer le Scanner photo -->
+        <button class="btn-scan" id="scan-trigger">📷 Ouvrir l'appareil photo (QR Code)</button>
+
+        <!-- Fenêtre invisible de la caméra (s'active au clic) -->
+        <div class="scanner-container" id="scanner-area">
+            <h2>🎥 Viseur de la Guilde</h2>
+            <div id="reader"></div>
+            <button class="btn-close-scanner" id="btn-close">Fermer la caméra</button>
+        </div>
+
+        <div class="chat-section">
+            <h2>💬 Messagerie de la Guilde</h2>
+            <div class="chat-messages" id="chat-box"></div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Écrire un message...">
+                <button id="chat-send">Envoyer</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const RANGS = ["Rang E", "Rang D", "Rang C", "Rang B", "Rang A", "Rang S", "Rang SS", "Rang SSS", "Rang SSS+"];
+        let aventurier = JSON.parse(localStorage.getItem('g_adv')) || { 
+            nom: "", 
+            points: 0, 
+            quetesTerminees: 0, 
+            queteEnCours: "Aucune" 
+        };
+        let messagesChat = JSON.parse(localStorage.getItem('g_chat')) || [
+            { sender: "Maître", text: "Bienvenue à la guilde des Aventuriers de Sylve !", time: "12:00" }
+        ];
+        let html5QrcodeScanner = null;
+        let isScannerActive = false;
+
+        /**
+         * Affiche une notification temporaire
+         */
+        function afficherNotification(message, type = 'success') {
+            const notif = document.getElementById('notification');
+            notif.textContent = message;
+            notif.className = `notification ${type}`;
+            
+            setTimeout(() => {
+                notif.className = 'notification';
+            }, 3000);
+        }
+
+        /**
+         * Met à jour l'interface avec les données de l'aventurier
+         */
+        function mettreAJourInterface() {
+            if (!aventurier.nom) {
+                let pseudo = prompt("Quel est ton nom d'Aventurier ?");
+                aventurier.nom = pseudo ? pseudo.trim() : "Anonyme";
+                localStorage.setItem('g_adv', JSON.stringify(aventurier));
+            }
+            
+            let index = Math.floor(aventurier.points / 1000);
+            if (index >= RANGS.length) index = RANGS.length - 1;
+            
+            document.getElementById('adv-name').innerText = aventurier.nom;
+            document.getElementById('adv-rank').innerText = RANGS[index];
+            document.getElementById('adv-points').innerText = `${aventurier.points % 1000} / 1000 (Total: ${aventurier.points})`;
+            document.getElementById('quest-current').innerText = aventurier.queteEnCours;
+            document.getElementById('quests-completed').innerText = aventurier.quetesTerminees;
+            afficherChat();
+        }
+
+        /**
+         * Affiche les messages du chat
+         */
+        function afficherChat() {
+            const box = document.getElementById('chat-box');
+            box.innerHTML = "";
+            messagesChat.forEach(msg => {
+                const isSystem = msg.sender === "Système";
+                const senderClass = isSystem ? 'msg-system' : 'msg-sender';
+                box.innerHTML += `<div class="message"><span class="msg-time">[${msg.time}]</span><span class="${senderClass}">${msg.sender} :</span> ${msg.text}</div>`;
+            });
+            box.scrollTop = box.scrollHeight;
+        }
+
+        /**
+         * Envoie un message dans le chat
+         */
+        function envoyerMessage() {
+            const input = document.getElementById('chat-input');
+            if (input.value.trim() === "") return;
+            
+            let h = new Date().toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'});
+            messagesChat.push({ 
+                sender: aventurier.nom, 
+                text: input.value.trim(), 
+                time: h 
+            });
+            localStorage.setItem('g_chat', JSON.stringify(messagesChat));
+            input.value = "";
+            afficherChat();
+        }
+
+        /**
+         * Traite les codes QR scannés
+         */
+        function onScanSuccess(decodedText) {
+            let h = new Date().toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'});
+            let code = decodedText.trim().toLowerCase();
+
+            fermerCamera();
+
+            if (code === "quete1") {
+                if (aventurier.queteEnCours !== "Aucune") {
+                    afficherNotification("⚠️ Tu as déjà une quête en cours !", 'error');
+                    return;
+                }
+                aventurier.queteEnCours = "Nettoyer la taverne (Rang E)";
+                afficherNotification("⚔️ Quête acceptée !");
+            } else if (code === "fin1") {
+                if (aventurier.queteEnCours === "Aucune") {
+                    afficherNotification("⚠️ Aucune quête en cours.", 'error');
+                    return;
+                }
+                aventurier.queteEnCours = "Aucune";
+                aventurier.quetesTerminees++;
+                aventurier.points += 250;
+                afficherNotification("🎉 Quête validée ! +250 Points !");
+                messagesChat.push({ 
+                    sender: "Système", 
+                    text: `Bravo à ${aventurier.nom} ! Quête validée !`, 
+                    time: h 
+                });
+                localStorage.setItem('g_chat', JSON.stringify(messagesChat));
+            } else {
+                afficherNotification(`⚠️ Code QR non reconnu: ${decodedText}`, 'error');
+            }
+
+            localStorage.setItem('g_adv', JSON.stringify(aventurier));
+            mettreAJourInterface();
+        }
+
+        /**
+         * Gère les erreurs de scan
+         */
+        function onScanError(error) {
+            // Silencieux : on ignore les erreurs de scan continues
+            console.debug("Erreur scan QR:", error);
+        }
+
+        /**
+         * Ouvre la caméra pour scanner les QR codes
+         */
+        function ouvrirCamera() {
+            if (isScannerActive) return;
+            
+            isScannerActive = true;
+            document.getElementById('scanner-area').classList.add('active');
+            document.getElementById('scan-trigger').disabled = true;
+            document.getElementById('scan-trigger').innerHTML = '<span class="loading-spinner"></span>Initialisation...';
+            
+            try {
+                html5QrcodeScanner = new Html5QrcodeScanner(
+                    "reader", 
+                    { 
+                        fps: 10, 
+                        qrbox: 250,
+                        rememberLastUsedCamera: true,
+                        aspectRatio: 1.0
+                    }, 
+                    false
+                );
+                
+                html5QrcodeScanner.render(onScanSuccess, onScanError);
+                document.getElementById('scan-trigger').disabled = false;
+                document.getElementById('scan-trigger').innerHTML = '📷 Ouvrir l\'appareil photo (QR Code)';
+            } catch (error) {
+                console.error("Erreur lors du lancement de la caméra:", error);
+                afficherNotification("❌ Impossible d'accéder à la caméra. Vérifie tes permissions.", 'error');
+                fermerCamera();
+            }
+        }
+
+        /**
+         * Ferme la caméra et nettoie les ressources
+         */
+        function fermerCamera() {
+            if (html5QrcodeScanner && isScannerActive) {
+                html5QrcodeScanner.clear().then(() => {
+                    document.getElementById('scanner-area').classList.remove('active');
+                    document.getElementById('scan-trigger').disabled = false;
+                    document.getElementById('scan-trigger').innerHTML = '📷 Ouvrir l\'appareil photo (QR Code)';
+                    isScannerActive = false;
+                }).catch((error) => {
+                    console.error("Erreur lors de la fermeture de la caméra:", error);
+                    isScannerActive = false;
+                });
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('chat-send').addEventListener('click', envoyerMessage);
+        document.getElementById('chat-input').addEventListener('keypress', (e) => { 
+            if(e.key === 'Enter') envoyerMessage(); 
+        });
+        document.getElementById('scan-trigger').addEventListener('click', ouvrirCamera);
+        document.getElementById('btn-close').addEventListener('click', fermerCamera);
+        
+        // Initialisation
+        mettreAJourInterface();
+    </script>
+</body>
+</html>
