@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Les Aventuriers de Sylve - Guilde</title>
     <!-- Bibliothèque QR Code Scanner -->
-    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@1.6.15/minified/html5-qrcode.min.js"></script>
     <style>
         :root {
             --bg-color: #1a1a1a;
@@ -127,7 +127,7 @@
             transition: opacity 0.3s;
         }
         
-        .btn-scan:hover {
+        .btn-scan:hover:not(:disabled) {
             opacity: 0.9;
         }
         
@@ -197,7 +197,7 @@
             padding: 15px; 
             display: flex; 
             flex-direction: column; 
-            height: 220px; 
+            height: 300px; 
         }
         
         .chat-messages { 
@@ -211,23 +211,51 @@
         }
         
         .message { 
-            margin-bottom: 8px; 
-            font-size: 14px; 
+            margin-bottom: 10px; 
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            word-wrap: break-word;
+        }
+        
+        .message.user {
+            background: #333;
+            border-left: 3px solid var(--accent-color);
+        }
+        
+        .message.maitre {
+            background: #2a3a2a;
+            border-left: 3px solid var(--success-color);
+        }
+        
+        .message.system {
+            background: #3a2a2a;
+            border-left: 3px solid var(--error-color);
+            font-style: italic;
         }
         
         .msg-time { 
             color: #777; 
             font-size: 11px; 
-            margin-right: 5px; 
         }
         
         .msg-sender { 
             color: var(--accent-color); 
-            font-weight: bold; 
+            font-weight: bold;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .message.maitre .msg-sender {
+            color: var(--success-color);
+        }
+
+        .message.system .msg-sender {
+            color: var(--error-color);
         }
         
-        .msg-system {
-            color: #51cf66;
+        .msg-content {
+            display: block;
         }
         
         .chat-input-area { 
@@ -256,6 +284,17 @@
         
         .chat-input-area button:hover {
             opacity: 0.9;
+        }
+
+        .master-badge {
+            display: inline-block;
+            background: var(--success-color);
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            margin-left: 5px;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -316,6 +355,8 @@
 
     <script>
         const RANGS = ["Rang E", "Rang D", "Rang C", "Rang B", "Rang A", "Rang S", "Rang SS", "Rang SSS", "Rang SSS+"];
+        const MAITRE_NAME = "Maître de Sylve";
+        
         let aventurier = JSON.parse(localStorage.getItem('g_adv')) || { 
             nom: "", 
             points: 0, 
@@ -323,7 +364,7 @@
             queteEnCours: "Aucune" 
         };
         let messagesChat = JSON.parse(localStorage.getItem('g_chat')) || [
-            { sender: "Maître", text: "Bienvenue à la guilde des Aventuriers de Sylve !", time: "12:00" }
+            { sender: MAITRE_NAME, text: "Bienvenue à la guilde des Aventuriers de Sylve !", time: "12:00", type: "maitre" }
         ];
         let html5QrcodeScanner = null;
         let isScannerActive = false;
@@ -369,9 +410,14 @@
             const box = document.getElementById('chat-box');
             box.innerHTML = "";
             messagesChat.forEach(msg => {
-                const isSystem = msg.sender === "Système";
-                const senderClass = isSystem ? 'msg-system' : 'msg-sender';
-                box.innerHTML += `<div class="message"><span class="msg-time">[${msg.time}]</span><span class="${senderClass}">${msg.sender} :</span> ${msg.text}</div>`;
+                const messageType = msg.type || (msg.sender === MAITRE_NAME ? 'maitre' : msg.sender === 'Système' ? 'system' : 'user');
+                box.innerHTML += `
+                    <div class="message ${messageType}">
+                        <span class="msg-sender">${msg.sender}</span>
+                        <span class="msg-content">${msg.text}</span>
+                        <span class="msg-time">[${msg.time}]</span>
+                    </div>
+                `;
             });
             box.scrollTop = box.scrollHeight;
         }
@@ -387,7 +433,8 @@
             messagesChat.push({ 
                 sender: aventurier.nom, 
                 text: input.value.trim(), 
-                time: h 
+                time: h,
+                type: 'user'
             });
             localStorage.setItem('g_chat', JSON.stringify(messagesChat));
             input.value = "";
@@ -420,9 +467,10 @@
                 aventurier.points += 250;
                 afficherNotification("🎉 Quête validée ! +250 Points !");
                 messagesChat.push({ 
-                    sender: "Système", 
+                    sender: MAITRE_NAME, 
                     text: `Bravo à ${aventurier.nom} ! Quête validée !`, 
-                    time: h 
+                    time: h,
+                    type: 'maitre'
                 });
                 localStorage.setItem('g_chat', JSON.stringify(messagesChat));
             } else {
@@ -438,7 +486,7 @@
          */
         function onScanError(error) {
             // Silencieux : on ignore les erreurs de scan continues
-            console.debug("Erreur scan QR:", error);
+            console.debug("Scan en cours...", error);
         }
 
         /**
@@ -447,19 +495,28 @@
         function ouvrirCamera() {
             if (isScannerActive) return;
             
-            isScannerActive = true;
-            document.getElementById('scanner-area').classList.add('active');
-            document.getElementById('scan-trigger').disabled = true;
-            document.getElementById('scan-trigger').innerHTML = '<span class="loading-spinner"></span>Initialisation...';
-            
             try {
+                isScannerActive = true;
+                document.getElementById('scanner-area').classList.add('active');
+                document.getElementById('scan-trigger').disabled = true;
+                document.getElementById('scan-trigger').innerHTML = '<span class="loading-spinner"></span>Initialisation caméra...';
+                
+                // Nettoyer l'ancien scanner s'il existe
+                if (html5QrcodeScanner) {
+                    try {
+                        html5QrcodeScanner.clear();
+                    } catch (e) {
+                        console.debug("Nettoyage ancien scanner");
+                    }
+                }
+                
                 html5QrcodeScanner = new Html5QrcodeScanner(
                     "reader", 
                     { 
                         fps: 10, 
-                        qrbox: 250,
+                        qrbox: { width: 250, height: 250 },
                         rememberLastUsedCamera: true,
-                        aspectRatio: 1.0
+                        showTorchButtonIfSupported: true
                     }, 
                     false
                 );
@@ -467,8 +524,9 @@
                 html5QrcodeScanner.render(onScanSuccess, onScanError);
                 document.getElementById('scan-trigger').disabled = false;
                 document.getElementById('scan-trigger').innerHTML = '📷 Ouvrir l\'appareil photo (QR Code)';
+                afficherNotification("✅ Caméra activée ! Scannez un QR code.");
             } catch (error) {
-                console.error("Erreur lors du lancement de la caméra:", error);
+                console.error("Erreur caméra:", error);
                 afficherNotification("❌ Impossible d'accéder à la caméra. Vérifie tes permissions.", 'error');
                 fermerCamera();
             }
@@ -484,10 +542,17 @@
                     document.getElementById('scan-trigger').disabled = false;
                     document.getElementById('scan-trigger').innerHTML = '📷 Ouvrir l\'appareil photo (QR Code)';
                     isScannerActive = false;
+                    html5QrcodeScanner = null;
                 }).catch((error) => {
-                    console.error("Erreur lors de la fermeture de la caméra:", error);
+                    console.error("Erreur fermeture caméra:", error);
+                    document.getElementById('scanner-area').classList.remove('active');
+                    document.getElementById('scan-trigger').disabled = false;
+                    document.getElementById('scan-trigger').innerHTML = '📷 Ouvrir l\'appareil photo (QR Code)';
                     isScannerActive = false;
+                    html5QrcodeScanner = null;
                 });
+            } else {
+                isScannerActive = false;
             }
         }
 
