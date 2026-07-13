@@ -1,13 +1,13 @@
 # 📜 Les Aventuriers de Sylve
 
-Une application web gamifiée pour gérer des quêtes, des profils d'aventuriers et une messagerie en temps réel. Scannez des codes QR pour accepter et terminer des quêtes !
+Une application web **isekai gamifiée** pour gérer des quêtes, des profils d'aventuriers et une messagerie en temps réel avec amis ! 🗡️✨
 
 ## 🎮 Fonctionnalités
 
 ✅ **Profil d'Aventurier**
-- Gestion du nom et du pseudo
 - Système de rangs (E à SSS+)
 - Accumulation de points et progression
+- **Pseudo personnalisable**
 
 ⚔️ **Système de Quêtes**
 - Accepter des quêtes via scan de codes QR
@@ -15,44 +15,68 @@ Une application web gamifiée pour gérer des quêtes, des profils d'aventuriers
 - Suivi des quêtes en cours et terminées
 
 📷 **Scanner QR Code**
-- Accès à la caméra du téléphone/ordinateur
 - Scan de codes pour les quêtes
-- Gestion robuste des permissions et erreurs
+- Gestion robuste des permissions
 
-💬 **Messagerie de la Guilde**
-- Chat en direct avec les autres aventuriers
-- Notifications du système
-- Historique sauvegardé localement
+📸 **Caméra**
+- Bouton séparé pour activer la caméra
+- Accès direct aux permissions
 
-💾 **Stockage Local**
-- Données persistantes (localStorage)
-- Aucun serveur requis
-- Données sauvegardées automatiquement
+💬 **Messagerie en Temps Réel**
+- Chat public avec la guilde entière
+- **Chat privé avec tes amis** 🎭
+- Notifications instantanées
+- Socket.io pour la synchronisation
+
+👥 **Système d'Amis**
+- Ajouter des amis par pseudo
+- Chat privé exclusif
+- Notifications de messages
+
+🔔 **Notifications**
+- Messages reçus
+- Amis en ligne
+- Quêtes complétées
+
+💾 **Backend Serveur**
+- Node.js + Express
+- MongoDB pour les données
+- Socket.io pour le temps réel
+- Déployé sur Render (gratuit)
 
 ## 🚀 Démarrage Rapide
 
-### Accès Direct
-L'application est déployée sur GitHub Pages :
+### Online (Déployé)
 👉 [Les Aventuriers de Sylve](https://pirate40809.github.io/Les-Aventuriers-de-Sylve/)
 
-### Utilisation Locale
+⚠️ **Important** : Configure d'abord le backend pour que tout fonctionne !
+Voir [INSTALLATION.md](INSTALLATION.md)
+
+### Local
 1. Clonez le dépôt :
 ```bash
 git clone https://github.com/Pirate40809/Les-Aventuriers-de-Sylve.git
 cd Les-Aventuriers-de-Sylve
 ```
 
-2. Ouvrez `index.html` dans votre navigateur
+2. Installez le backend :
 ```bash
-# Sur Windows
-start index.html
-
-# Sur Mac
-open index.html
-
-# Sur Linux
-xdg-open index.html
+cd backend
+npm install
 ```
+
+3. Configurez `.env` :
+```bash
+cp .env.example .env
+# Édite .env avec tes infos MongoDB
+```
+
+4. Lancez le serveur :
+```bash
+npm start
+```
+
+5. Ouvrez `index.html` dans votre navigateur
 
 ## 📱 Codes QR Disponibles
 
@@ -71,35 +95,73 @@ xdg-open index.html
 
 ```
 Les-Aventuriers-de-Sylve/
-├── index.html          # Application principale (HTML + CSS + JS)
-├── README.md          # Ce fichier
-└── .gitignore         # Fichiers ignorés par Git
+├── index.html              # Frontend isekai
+├── backend/
+│   ├── server.js          # Backend Node.js
+│   ├── package.json       # Dépendances
+│   └── .env.example       # Config
+├── INSTALLATION.md        # Guide complet
+└── README.md             # Ce fichier
 ```
 
-## 📝 Améliorations Apportées
+## 📊 Stack Technique
 
-✨ **Version 2.0** :
-- ✅ Correction de la bibliothèque QR Code (`html5-qrcode`)
-- ✅ Suppression du HTML en double
-- ✅ Gestion robuste des erreurs de caméra
-- ✅ Système de notifications (succès/erreur)
-- ✅ États de chargement visuels
-- ✅ Meilleure accessibilité
-- ✅ Code mieux documenté
-- ✅ CSS optimisé et responsive
+**Frontend:**
+- HTML5 + CSS3 (Design isekai/fantasy)
+- JavaScript Vanilla
+- Socket.io (client)
+- html5-qrcode (Scanner QR)
+
+**Backend:**
+- Node.js + Express
+- Socket.io (serveur)
+- MongoDB Atlas (base de données)
+- CORS pour la sécurité
+
+**Déploiement:**
+- Frontend : GitHub Pages
+- Backend : Render.com (gratuit)
+- Base de données : MongoDB Atlas (gratuit)
+
+## 🎨 Design Isekai
+
+- 🎭 Couleurs fantasy (or, pourpre, marron)
+- 📜 Polices élégantes (Cinzel, Crimson Text)
+- ✨ Animations fluides et éléments visuels
+- 📱 Responsive et mobile-friendly
+- 🌙 Thème sombre immersif
+
+## 📝 Fonctionnalités Avancées
+
+### Chat Privé
+1. Ajoute des amis via le bouton "Ajouter"
+2. Clique sur le bouton 💬 d'un ami
+3. Chat privé synchronisé en temps réel
+
+### Système de Notifications
+- Notifications toast pour tous les événements
+- Notification de nouveaux messages
+- Historique des notifications
+
+### Gestion du Pseudo
+1. Modifie ton pseudo dans la section "Profil"
+2. Clique ✓ pour valider
+3. Tous les autres joueurs verront ton nouveau pseudo
 
 ## 🎯 Prochaines Fonctionnalités Possibles
 
+- [ ] Guildes/Clans
 - [ ] Système de difficulté des quêtes
 - [ ] Tableau de bord avec statistiques
 - [ ] Quêtes quotidiennes
 - [ ] Système de récompenses avancé
 - [ ] Base de données cloud (optionnel)
-- [ ] Mode multijoueur
+- [ ] Achievements/Badges
+- [ ] Classement global
 
 ## 🐛 Rapporter un Bug
 
-Si vous trouvez un bug :
+Si tu trouves un bug :
 1. Allez sur [Issues](https://github.com/Pirate40809/Les-Aventuriers-de-Sylve/issues)
 2. Cliquez sur "New Issue"
 3. Décrivez le problème en détail
@@ -123,4 +185,16 @@ Créé par [Pirate40809](https://github.com/Pirate40809)
 
 ---
 
-**Bienvenue à la Guilde des Aventuriers de Sylve ! 🗡️**
+## 🔗 Liens Importants
+
+- 📖 [Guide Installation Complet](INSTALLATION.md)
+- 🌐 [Application Live](https://pirate40809.github.io/Les-Aventuriers-de-Sylve/)
+- 🐙 [GitHub Repository](https://github.com/Pirate40809/Les-Aventuriers-de-Sylve)
+- 💾 [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+- 🚀 [Render.com](https://render.com)
+
+---
+
+**Bienvenue à la Guilde des Aventuriers de Sylve ! ⚔️✨**
+
+Rejoins des milliers d'aventuriers et deviens une légende !
